@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Titan Upgrade Calculator with Specific Upgrade Cost</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  .tabs { display: flex; margin-bottom: 1rem; cursor: pointer; }
+  .tab { padding: 10px 20px; border: 1px solid #ccc; border-bottom: none; }
+  .tab.active { background: #f0f0f0; font-weight: bold; }
+  .tab-content { border: 1px solid #ccc; padding: 10px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem;}
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center;}
+  tr.upgraded { background-color: #d4f8d4; }
+  tr.no-upgrade { background-color: #f8d4d4; }
+  textarea { width: 100%; height: 150px; font-family: monospace; }
+  label { font-weight: bold; display: block; margin-top: 1rem; }
+  button { margin-top: 1rem; padding: 10px 20px; font-size: 16px; }
+  .summary { margin-top: 1rem; font-weight: bold; }
+  .inline-inputs { display: flex; align-items: center; gap: 10px; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="tabs">
+    <div 
+      :class="['tab', activeTab === 'input' ? 'active' : '']" 
+      @click="activeTab = 'input'">Input</div>
+    <div 
+      :class="['tab', activeTab === 'result' ? 'active' : '']" 
+      @click="activeTab = 'result'">Result</div>
+  </div>
+
+  <div class="tab-content" v-if="activeTab === 'input'">
+    <label for="potionCostInput">Potion Cost Table (JSON):</label>
+    <textarea id="potionCostInput" v-model="potionCostJson" placeholder='Example: { "1": 0, "2": 100, "3": 110, ... }'></textarea>
+
+    <label for="titansInput">Titans Levels (JSON):</label>
+    <textarea id="titansInput" v-model="titansJson" placeholder='Example: { "Nova": 128, "Mort": 122, ... }'></textarea>
+
+    <label for="totalPotions">Total Potions Available:</label>
+    <input type="number" id="totalPotions" v-model.number="totalPotions" min="0" />
+
+    <hr />
+
+    <label>Calculate Potion Cost for Specific Upgrade:</label>
+    <div class="inline-inputs">
+      <select v-model="selectedTitan">
+        <option disabled value="">Select Titan</option>
+        <option v-for="t in titanNames" :key="t" :value="t">{{ t }}</option>
+      </select>
+      <input type="number" v-model.number="upgradeCount" min="1" placeholder="Number of upgrades" />
+      <button @click="calculateSpecificCost">Calculate Cost</button>
+    </div>
+    <p v-if="specificCost !== null" style="margin-top: 0.5rem;">
+      Potion cost to upgrade <strong>{{ selectedTitan }}</strong> by <strong>{{ upgradeCount }}</strong> level(s): <strong>{{ specificCost }}</strong>
+    </p>
+    <p v-if="specificCostError" style="color:red;">{{ specificCostError }}</p>
+
+    <button @click="calculateUpgrades" style="margin-top: 2rem;">Calculate All Upgrades</button>
+
+    <p style="margin-top:1rem; color:red;" v-if="error">{{ error }}</p>
+  </div>
+
+  <div class="tab-content" v-if="activeTab === 'result'">
+    <table v-if="results.length > 0">
+      <thead>
+        <tr>
+          <th>Titan</th>
+          <th>Initial Level</th>
+          <th>Final Level</th>
+          <th>Total Upgrade Cost</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in results" :key="item.titan" 
+            :class="item.status === 'No Upgrade Possible' ? 'no-upgrade' : 'upgraded'">
+          <td style="text-align:left">{{ item.titan }}</td>
+          <td>{{ item.initialLevel }}</td>
+          <td>{{ item.finalLevel }}</td>
+          <td>{{ item.totalCost }}</td>
+          <td>{{ item.status }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p v-else>No data to show.</p>
+
+    <p class="summary">
+      Total Upgrades Performed: {{ totalUpgrades }} <br/>
+      Potions Remaining: {{ potionsRemaining }}
+    </p>
+
+    <button @click="activeTab = 'input'">Back to Input</button>
+  </div>
+</div>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+  data() {
+    return {
+      activeTab: 'input',
+      potionCostJson: '{\n  "1": 0,\n  "2": 100,\n  "3": 110,\n  "4": 120\n  // add more...\n}',
+      titansJson: '{\n  "Nova": 128,\n  "Mort": 122,\n  "Angus": 121\n  // add more...\n}',
+      totalPotions: 1000,
+      error: '',
+      results: [],
+      totalUpgrades: 0,
+      potionsRemaining: 0,
+      selectedTitan: '',
+      upgradeCount: 1,
+      specificCost: null,
+      specificCostError: '',
+    }
+  },
+  computed: {
+    titanNames() {
+      try {
+        const titans = JSON.parse(this.titansJson)
+        return Object.keys(titans)
+      } catch {
+        return []
+      }
+    }
+  },
+  methods: {
+    calculateSpecificCost() {
+      this.specificCostError = ''
+      this.specificCost = null
+      if (!this.selectedTitan) {
+        this.specificCostError = 'Please select a titan.'
+        return
+      }
+      if (!Number.isInteger(this.upgradeCount) || this.upgradeCount < 1) {
+        this.specificCostError = 'Enter a valid number of upgrades (>=1).'
+        return
+      }
+
+      let potionCostTable, titans;
+      try {
+        potionCostTable = JSON.parse(this.potionCostJson)
+        potionCostTable = Object.fromEntries(
+          Object.entries(potionCostTable).map(([k,v]) => [parseInt(k), v])
+        )
+      } catch {
+        this.specificCostError = 'Invalid JSON for Potion Cost Table.'
+        return
+      }
+      try {
+        titans = JSON.parse(this.titansJson)
+      } catch {
+        this.specificCostError = 'Invalid JSON for Titans.'
+        return
+      }
+
+      if (!(this.selectedTitan in titans)) {
+        this.specificCostError = `Titan '${this.selectedTitan}' not found in Titans data.`
+        return
+      }
+
+      const currentLevel = titans[this.selectedTitan]
+      let totalCost = 0
+      for (let i = 1; i <= this.upgradeCount; i++) {
+        const nextLevel = currentLevel + i
+        const cost = potionCostTable[nextLevel]
+        if (cost === undefined) {
+          this.specificCostError = `Potion cost not found for level ${nextLevel}.`
+          return
+        }
+        totalCost += cost
+      }
+
+      this.specificCost = totalCost
+    },
+
+    calculateUpgrades() {
+      this.error = ''
+      let potionCostTable, titans
+      try {
+        potionCostTable = JSON.parse(this.potionCostJson)
+        potionCostTable = Object.fromEntries(
+          Object.entries(potionCostTable).map(([k, v]) => [parseInt(k), v])
+        )
+      } catch(e) {
+        this.error = 'Invalid JSON for Potion Cost Table.'
+        return
+      }
+      try {
+        titans = JSON.parse(this.titansJson)
+      } catch(e) {
+        this.error = 'Invalid JSON for Titans.'
+        return
+      }
+      if (typeof this.totalPotions !== 'number' || this.totalPotions < 0) {
+        this.error = 'Total Potions must be a positive number.'
+        return
+      }
+
+      let titanLevels = {...titans}
+      let upgrades = {}
+      let potionsLeft = this.totalPotions
+      let potionsSpent = {}
+
+      for (let t in titanLevels) {
+        upgrades[t] = 0
+        potionsSpent[t] = 0
+      }
+
+      while(true) {
+        let cheapestTitan = null
+        let cheapestCost = Infinity
+
+        for(let t in titanLevels) {
+          let currentLevel = titanLevels[t]
+          let nextLevel = currentLevel + 1
+          let cost = potionCostTable[nextLevel]
+
+          if(cost !== undefined && cost <= potionsLeft && cost < cheapestCost) {
+            cheapestCost = cost
+            cheapestTitan = t
+          }
+        }
+
+        if(cheapestTitan === null) break
+
+        titanLevels[cheapestTitan]++
+        upgrades[cheapestTitan]++
+        potionsSpent[cheapestTitan] += cheapestCost
+        potionsLeft -= cheapestCost
+      }
+
+      this.results = Object.keys(titanLevels).map(titan => {
+        return {
+          titan,
+          initialLevel: titans[titan],
+          finalLevel: titanLevels[titan],
+          totalCost: potionsSpent[titan],
+          status: upgrades[titan] > 0 ? 'Upgraded' : 'No Upgrade Possible'
+        }
+      })
+
+      this.totalUpgrades = Object.values(upgrades).reduce((a,b) => a+b, 0)
+      this.potionsRemaining = potionsLeft
+
+      this.activeTab = 'result'
+    }
+  }
+}).mount('#app')
+</script>
+</body>
+</html>
