@@ -1,204 +1,373 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Titan Upgrade Calculator with External Data</title>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-<style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  .tabs { display: flex; margin-bottom: 1rem; cursor: pointer; }
-  .tab { padding: 10px 20px; border: 1px solid #ccc; border-bottom: none; }
-  .tab.active { background: #f0f0f0; font-weight: bold; }
-  .tab-content { border: 1px solid #ccc; padding: 10px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 1rem;}
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: center;}
-  tr.upgraded { background-color: #d4f8d4; }
-  tr.no-upgrade { background-color: #f8d4d4; }
-  textarea { width: 100%; height: 150px; font-family: monospace; }
-  label { font-weight: bold; display: block; margin-top: 1rem; }
-  button { margin-top: 1rem; padding: 10px 20px; font-size: 16px; }
-  .summary { margin-top: 1rem; font-weight: bold; }
-  .inline-inputs { display: flex; align-items: center; gap: 10px; margin-top: 1rem; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Titan Upgrade Calculator with Tabs</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<div id="app">
-  <div v-if="loading">Loading data...</div>
-  <div v-else>
-    <label for="totalPotions">Total Potions Available:</label>
-    <input type="number" id="totalPotions" v-model.number="totalPotions" min="0" />
+<body class="bg-gray-50 p-6 font-sans">
+  <div id="app" class="max-w-7xl mx-auto">
+    <div v-if="loading" class="text-center text-gray-700 text-lg">Loading data...</div>
+    <div v-else>
+      <!-- Tabs -->
+      <div class="mb-6 border-b border-gray-300">
+        <nav class="flex space-x-4" aria-label="Tabs">
+          <button
+            :class="['py-2 px-4 font-semibold border-b-2', activeTab === 'calculator' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900']"
+            @click="activeTab = 'calculator'"
+          >
+            Calculator
+          </button>
+          <button
+            :class="['py-2 px-4 font-semibold border-b-2', activeTab === 'results' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-600 hover:text-gray-900']"
+            @click="activeTab = 'results'"
+          >
+            Results
+          </button>
+        </nav>
+      </div>
 
-    <label>Select Titan:</label>
-    <select v-model="selectedTitan">
-      <option disabled value="">Select Titan</option>
-      <option v-for="t in titanNames" :key="t" :value="t">{{ t }}</option>
-    </select>
+      <!-- Calculator Tab -->
+      <div v-show="activeTab === 'calculator'" class="flex flex-col md:flex-row gap-8">
+        <!-- LEFT COLUMN: Upgrade with Available Potions -->
+        <section class="flex-1 bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-2xl font-bold mb-4 text-blue-700">Upgrade with Available Potions</h2>
+          
+          <label class="block font-semibold mb-1">Total Potions Available:</label>
+          <input
+            type="number"
+            v-model.number="totalPotionsAvailable"
+            min="0"
+            class="w-full border border-gray-300 rounded p-2 mb-4"
+          />
 
-    <label>Number of upgrades:</label>
-    <input type="number" v-model.number="upgradeCount" min="1" />
+          <button
+            @click="runCalculateUpgrades"
+            class="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition"
+          >
+            Calculate Max Upgrades
+          </button>
+        </section>
 
-    <button @click="calculateSpecificCost">Calculate Specific Upgrade Cost</button>
+        <!-- RIGHT COLUMN: Upgrade by Desired Count -->
+        <section class="flex-1 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-4 text-green-700">Upgrade by Desired Count</h2>
+            
+            <label class="block font-semibold mb-1">Desired Number of Upgrades:</label>
+            <input
+                type="number"
+                v-model.number="desiredUpgradeCount"
+                min="1"
+                class="w-full border border-gray-300 rounded p-2 mb-4"
+            />
 
-    <p v-if="specificCost !== null">
-      Potion cost to upgrade <strong>{{ selectedTitan }}</strong> by <strong>{{ upgradeCount }}</strong> level(s): <strong>{{ specificCost }}</strong>
-    </p>
-    <p v-if="specificCostError" style="color:red;">{{ specificCostError }}</p>
+            <button
+                @click="runCalculateUpgradesForCount"
+                class="bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700 transition"
+            >
+                Calculate Potions Needed
+            </button>
+        </section>
 
-    <hr/>
+      </div>
 
-    <button @click="calculateUpgrades">Calculate All Upgrades</button>
+      <!-- Results Tab -->
+      <div v-show="activeTab === 'results'" class="bg-white p-6 rounded-lg shadow-md">
+        <div class="mb-4 flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-gray-800">Results</h2>
+          <button
+            @click="activeTab = 'calculator'"
+            class="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2 text-gray-800 transition"
+          >
+            Back to Calculator
+          </button>
+        </div>
 
-    <div v-if="results.length">
-      <h3>Results:</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Titan</th>
-            <th>Initial Level</th>
-            <th>Final Level</th>
-            <th>Total Upgrade Cost</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in results" :key="item.titan">
-            <td>{{ item.titan }}</td>
-            <td>{{ item.initialLevel }}</td>
-            <td>{{ item.finalLevel }}</td>
-            <td>{{ item.totalCost }}</td>
-            <td>{{ item.status }}</td>
-          </tr>
-        </tbody>
-      </table>
+        <!-- Results for Available Potions -->
+        <div v-if="resultsAvailable.length" class="mb-8">
+          <h3 class="text-xl font-semibold mb-3 text-blue-700">Max Upgrades with Available Potions ({{ totalPotionsAvailable }} Potions)</h3>
+          <table class="min-w-full bg-white rounded shadow overflow-hidden">
+            <thead class="bg-blue-600 text-white">
+              <tr>
+                <th class="py-3 px-6 text-left">Titan</th>
+                <th class="py-3 px-6 text-center">Initial Level</th>
+                <th class="py-3 px-6 text-center">Final Level</th>
+                <th class="py-3 px-6 text-center">Total Upgrade Cost</th>
+                <th class="py-3 px-6 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in sortedResultsAvailable"
+                :key="item.titan"
+                :class="item.numberOfUpgrades > 0 ? 'bg-green-100' : 'bg-red-100'"
+                class="border-b border-gray-200"
+              >
+                <td class="py-3 px-6 font-semibold text-gray-700">{{ item.titan }}</td>
+                <td class="py-3 px-6 text-center">{{ item.initialLevel }}</td>
+                <td class="py-3 px-6 text-center">{{ item.finalLevel }}</td>
+                <td class="py-3 px-6 text-center">{{ item.totalCost }}</td>
+                <td
+                  class="py-3 px-6 text-center font-semibold"
+                  :class="item.numberOfUpgrades > 0 ? 'text-green-700' : 'text-red-700'"
+                >
+                  {{ item.numberOfUpgrades > 0 ? `Upgraded ${item.numberOfUpgrades} time${item.numberOfUpgrades > 1 ? 's' : ''}` : 'No Upgrade Possible' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="mt-4 font-semibold">
+            Total upgrades performed: {{ totalUpgradesAvailable }}<br/>
+            Potions remaining: {{ potionsRemainingAvailable }}
+          </p>
+        </div>
 
-      <p>Total upgrades performed: {{ totalUpgrades }}</p>
-      <p>Potions remaining: {{ potionsRemaining }}</p>
+        <!-- Results for Desired Upgrade Count -->
+        <div v-if="resultsCount.length">
+          <h3 class="text-xl font-semibold mb-3 text-green-700">Upgrades for Desired Count ({{ desiredUpgradeCount }} Upgrades)</h3>
+          <table class="min-w-full bg-white rounded shadow overflow-hidden">
+            <thead class="bg-green-600 text-white">
+              <tr>
+                <th class="py-3 px-6 text-left">Titan</th>
+                <th class="py-3 px-6 text-center">Initial Level</th>
+                <th class="py-3 px-6 text-center">Final Level</th>
+                <th class="py-3 px-6 text-center">Total Upgrade Cost</th>
+                <th class="py-3 px-6 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in sortedResultsCount"
+                :key="item.titan"
+                :class="item.numberOfUpgrades > 0 ? 'bg-green-100' : 'bg-red-100'"
+                class="border-b border-gray-200"
+              >
+                <td class="py-3 px-6 font-semibold text-gray-700">{{ item.titan }}</td>
+                <td class="py-3 px-6 text-center">{{ item.initialLevel }}</td>
+                <td class="py-3 px-6 text-center">{{ item.finalLevel }}</td>
+                <td class="py-3 px-6 text-center">{{ item.totalCost }}</td>
+                <td
+                  class="py-3 px-6 text-center font-semibold"
+                  :class="item.numberOfUpgrades > 0 ? 'text-green-700' : 'text-red-700'"
+                >
+                  {{ item.numberOfUpgrades > 0 ? `Upgraded ${item.numberOfUpgrades} time${item.numberOfUpgrades > 1 ? 's' : ''}` : 'No Upgrade Possible' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="mt-4 font-semibold">
+            Potions required: {{ potionsRequiredForCount }}<br />
+            <span :class="potionsDifference >= 0 ? 'text-green-700' : 'text-red-700'">
+              {{ potionsDifference >= 0
+                ? `You have enough potions! Leftover: ${potionsDifference}`
+                : `You need ${-potionsDifference} more potions.` }}
+            </span>
+          </p>
+        </div>
+
+        <div v-if="!resultsAvailable.length && !resultsCount.length" class="text-gray-600 italic">
+          No results yet. Please perform a calculation in the Calculator tab.
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-const { createApp } = Vue;
+  <script>
+    const { createApp } = Vue;
 
-createApp({
-  data() {
-    return {
-      loading: true,
-      potionCostTable: {},
-      titans: {},
-      totalPotions: 1000,
-      selectedTitan: '',
-      upgradeCount: 1,
-      specificCost: null,
-      specificCostError: '',
-      results: [],
-      totalUpgrades: 0,
-      potionsRemaining: 0,
-    }
-  },
-  computed: {
-    titanNames() {
-      return Object.keys(this.titans)
-    }
-  },
-  methods: {
-    async loadData() {
-      try {
-        const [potionResp, titansResp] = await Promise.all([
-          fetch('data/potion_cost_table.json'),
-          fetch('data/titans.json'),
-        ])
-        this.potionCostTable = await potionResp.json()
-        this.titans = await titansResp.json()
-      } catch (e) {
-        alert("Failed to load data files. Check console for details.")
-        console.error(e)
-      } finally {
-        this.loading = false
-      }
-    },
-    calculateSpecificCost() {
-      this.specificCostError = ''
-      this.specificCost = null
-      if (!this.selectedTitan) {
-        this.specificCostError = 'Please select a titan.'
-        return
-      }
-      if (!Number.isInteger(this.upgradeCount) || this.upgradeCount < 1) {
-        this.specificCostError = 'Enter a valid number of upgrades (>=1).'
-        return
-      }
-
-      if (!(this.selectedTitan in this.titans)) {
-        this.specificCostError = `Titan '${this.selectedTitan}' not found.`
-        return
-      }
-
-      const currentLevel = this.titans[this.selectedTitan]
-      let totalCost = 0
-      for (let i = 1; i <= this.upgradeCount; i++) {
-        const nextLevel = currentLevel + i
-        const cost = this.potionCostTable[nextLevel]
-        if (cost === undefined) {
-          this.specificCostError = `Potion cost not found for level ${nextLevel}.`
-          return
-        }
-        totalCost += cost
-      }
-      this.specificCost = totalCost
-    },
-    calculateUpgrades() {
-      let titanLevels = { ...this.titans }
-      let upgrades = {}
-      let potionsLeft = this.totalPotions
-      let potionsSpent = {}
-
-      for (let t in titanLevels) {
-        upgrades[t] = 0
-        potionsSpent[t] = 0
-      }
-
-      while (true) {
-        let cheapestTitan = null
-        let cheapestCost = Infinity
-
-        for (let t in titanLevels) {
-          let currentLevel = titanLevels[t]
-          let nextLevel = currentLevel + 1
-          let cost = this.potionCostTable[nextLevel]
-
-          if (cost !== undefined && cost <= potionsLeft && cost < cheapestCost) {
-            cheapestCost = cost
-            cheapestTitan = t
-          }
-        }
-        if (cheapestTitan === null) break
-
-        titanLevels[cheapestTitan]++
-        upgrades[cheapestTitan]++
-        potionsSpent[cheapestTitan] += cheapestCost
-        potionsLeft -= cheapestCost
-      }
-
-      this.results = Object.keys(titanLevels).map(titan => {
+    createApp({
+      data() {
         return {
-          titan,
-          initialLevel: this.titans[titan],
-          finalLevel: titanLevels[titan],
-          totalCost: potionsSpent[titan],
-          status: upgrades[titan] > 0 ? 'Upgraded' : 'No Upgrade Possible'
-        }
-      })
+          loading: true,
+          potionCostTable: {},
+          titans: {},
 
-      this.totalUpgrades = Object.values(upgrades).reduce((a, b) => a + b, 0)
-      this.potionsRemaining = potionsLeft
-    }
-  },
-  mounted() {
-    this.loadData()
-  }
-}).mount('#app')
-</script>
+          activeTab: 'calculator',
+
+          // LEFT side - given potions
+          totalPotionsAvailable: 1000,
+          resultsAvailable: [],
+          totalUpgradesAvailable: 0,
+          potionsRemainingAvailable: 0,
+
+          // RIGHT side - given desired upgrade count
+          desiredUpgradeCount: 10,
+          potionsYouHave: 1000,
+          resultsCount: [],
+          potionsRequiredForCount: 0,
+          potionsDifference: 0, // potionsYouHave - potionsRequiredForCount
+        };
+      },
+      computed: {
+        sortedResultsAvailable() {
+          return [...this.resultsAvailable].sort((a, b) => b.numberOfUpgrades - a.numberOfUpgrades);
+        },
+        sortedResultsCount() {
+          return [...this.resultsCount].sort((a, b) => b.numberOfUpgrades - a.numberOfUpgrades);
+        }
+      },
+      methods: {
+        async loadData() {
+          try {
+            const [potionResp, titansResp] = await Promise.all([
+              fetch('data/potion_cost_table.json'),
+              fetch('data/titans.json'),
+            ]);
+            this.potionCostTable = await potionResp.json();
+            this.titans = await titansResp.json();
+          } catch (e) {
+            alert("Failed to load data files. Check console for details.");
+            console.error(e);
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        runCalculateUpgrades() {
+          this.calculateUpgrades();
+          this.activeTab = 'results';
+        },
+
+        runCalculateUpgradesForCount() {
+          this.calculateUpgradesForCount();
+          this.activeTab = 'results';
+        },
+
+        calculateUpgrades() {
+            let titanLevels = {};
+            let upgradesData = [];
+            let potionsLeft = this.totalPotionsAvailable;
+            let totalUpgrades = 0;
+
+            // Clone initial titan levels
+            for (const titan in this.titans) {
+                titanLevels[titan] = this.titans[titan]; // direct number, no .level
+            }
+
+            // Get upgrade cost for going from level n to n+1
+            const getUpgradeCost = (level) => {
+                // Since keys in potionCostTable are strings, convert level+1 to string
+                const cost = this.potionCostTable[(level + 1).toString()];
+                return cost !== undefined ? cost : Infinity;
+            };
+
+            // Upgrade loop
+            while (true) {
+                let possibleUpgrades = [];
+
+                for (const titan in titanLevels) {
+                const currentLevel = titanLevels[titan];
+                const cost = getUpgradeCost(currentLevel);
+                if (cost <= potionsLeft) {
+                    possibleUpgrades.push({ titan, cost });
+                }
+                }
+
+                if (possibleUpgrades.length === 0) break;
+
+                // Choose upgrade with lowest cost
+                possibleUpgrades.sort((a, b) => a.cost - b.cost);
+                const chosen = possibleUpgrades[0];
+
+                titanLevels[chosen.titan]++;
+                potionsLeft -= chosen.cost;
+                totalUpgrades++;
+            }
+
+            // Build results array
+            for (const titan in this.titans) {
+                const initialLevel = this.titans[titan];
+                const finalLevel = titanLevels[titan];
+                const numberOfUpgrades = finalLevel - initialLevel;
+
+                // Calculate total cost for upgrades on this titan
+                let totalCost = 0;
+                for (let lvl = initialLevel; lvl < finalLevel; lvl++) {
+                totalCost += getUpgradeCost(lvl);
+                }
+
+                upgradesData.push({
+                titan,
+                initialLevel,
+                finalLevel,
+                numberOfUpgrades,
+                totalCost,
+                });
+            }
+
+            this.resultsAvailable = upgradesData;
+            this.totalUpgradesAvailable = totalUpgrades;
+            this.potionsRemainingAvailable = potionsLeft;
+        },
+
+        calculateUpgradesForCount() {
+            let titanLevels = {};
+            let upgradesData = [];
+            let totalPotionsNeeded = 0;
+            let upgradesNeeded = this.desiredUpgradeCount;
+
+            // Clone initial titan levels
+            for (const titan in this.titans) {
+                titanLevels[titan] = this.titans[titan];
+            }
+
+            const getUpgradeCost = (level) => {
+                const cost = this.potionCostTable[(level).toString()];
+                return cost !== undefined ? cost : Infinity;
+            };
+
+            while (upgradesNeeded > 0) {
+                let possibleUpgrades = [];
+
+                for (const titan in titanLevels) {
+                const currentLevel = titanLevels[titan];
+                const cost = getUpgradeCost(currentLevel + 1); // cost to upgrade to next level
+                if (cost !== Infinity) {
+                    possibleUpgrades.push({ titan, cost });
+                }
+                }
+
+                if (possibleUpgrades.length === 0) break;
+
+                possibleUpgrades.sort((a, b) => a.cost - b.cost);
+                const chosen = possibleUpgrades[0];
+
+                titanLevels[chosen.titan]++;
+                totalPotionsNeeded += chosen.cost;
+                upgradesNeeded--;
+            }
+
+            for (const titan in this.titans) {
+                const initialLevel = this.titans[titan];
+                const finalLevel = titanLevels[titan];
+                const numberOfUpgrades = finalLevel - initialLevel;
+
+                let totalCost = 0;
+                for (let lvl = initialLevel + 1; lvl <= finalLevel; lvl++) {
+                totalCost += getUpgradeCost(lvl);
+                }
+
+                upgradesData.push({
+                titan,
+                initialLevel,
+                finalLevel,
+                numberOfUpgrades,
+                totalCost,
+                });
+            }
+
+            this.resultsCount = upgradesData;
+            this.potionsRequiredForCount = totalPotionsNeeded;
+            this.potionsDifference = this.totalPotionsAvailable - totalPotionsNeeded;
+        },
+      },
+      mounted() {
+        this.loadData();
+      },
+    }).mount('#app');
+  </script>
 </body>
 </html>
