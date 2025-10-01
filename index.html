@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Titan Upgrade Calculator with Specific Upgrade Cost</title>
+<title>Titan Upgrade Calculator with External Data</title>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <style>
   body { font-family: Arial, sans-serif; margin: 20px; }
@@ -24,76 +24,57 @@
 </head>
 <body>
 <div id="app">
-  <div class="tabs">
-    <div 
-      :class="['tab', activeTab === 'input' ? 'active' : '']" 
-      @click="activeTab = 'input'">Input</div>
-    <div 
-      :class="['tab', activeTab === 'result' ? 'active' : '']" 
-      @click="activeTab = 'result'">Result</div>
-  </div>
-
-  <div class="tab-content" v-if="activeTab === 'input'">
-    <label for="potionCostInput">Potion Cost Table (JSON):</label>
-    <textarea id="potionCostInput" v-model="potionCostJson" placeholder='Example: { "1": 0, "2": 100, "3": 110, ... }'></textarea>
-
-    <label for="titansInput">Titans Levels (JSON):</label>
-    <textarea id="titansInput" v-model="titansJson" placeholder='Example: { "Nova": 128, "Mort": 122, ... }'></textarea>
-
+  <div v-if="loading">Loading data...</div>
+  <div v-else>
     <label for="totalPotions">Total Potions Available:</label>
     <input type="number" id="totalPotions" v-model.number="totalPotions" min="0" />
 
-    <hr />
+    <label>Select Titan:</label>
+    <select v-model="selectedTitan">
+      <option disabled value="">Select Titan</option>
+      <option v-for="t in titanNames" :key="t" :value="t">{{ t }}</option>
+    </select>
 
-    <label>Calculate Potion Cost for Specific Upgrade:</label>
-    <div class="inline-inputs">
-      <select v-model="selectedTitan">
-        <option disabled value="">Select Titan</option>
-        <option v-for="t in titanNames" :key="t" :value="t">{{ t }}</option>
-      </select>
-      <input type="number" v-model.number="upgradeCount" min="1" placeholder="Number of upgrades" />
-      <button @click="calculateSpecificCost">Calculate Cost</button>
-    </div>
-    <p v-if="specificCost !== null" style="margin-top: 0.5rem;">
+    <label>Number of upgrades:</label>
+    <input type="number" v-model.number="upgradeCount" min="1" />
+
+    <button @click="calculateSpecificCost">Calculate Specific Upgrade Cost</button>
+
+    <p v-if="specificCost !== null">
       Potion cost to upgrade <strong>{{ selectedTitan }}</strong> by <strong>{{ upgradeCount }}</strong> level(s): <strong>{{ specificCost }}</strong>
     </p>
     <p v-if="specificCostError" style="color:red;">{{ specificCostError }}</p>
 
-    <button @click="calculateUpgrades" style="margin-top: 2rem;">Calculate All Upgrades</button>
+    <hr/>
 
-    <p style="margin-top:1rem; color:red;" v-if="error">{{ error }}</p>
-  </div>
+    <button @click="calculateUpgrades">Calculate All Upgrades</button>
 
-  <div class="tab-content" v-if="activeTab === 'result'">
-    <table v-if="results.length > 0">
-      <thead>
-        <tr>
-          <th>Titan</th>
-          <th>Initial Level</th>
-          <th>Final Level</th>
-          <th>Total Upgrade Cost</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in results" :key="item.titan" 
-            :class="item.status === 'No Upgrade Possible' ? 'no-upgrade' : 'upgraded'">
-          <td style="text-align:left">{{ item.titan }}</td>
-          <td>{{ item.initialLevel }}</td>
-          <td>{{ item.finalLevel }}</td>
-          <td>{{ item.totalCost }}</td>
-          <td>{{ item.status }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-else>No data to show.</p>
+    <div v-if="results.length">
+      <h3>Results:</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Titan</th>
+            <th>Initial Level</th>
+            <th>Final Level</th>
+            <th>Total Upgrade Cost</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in results" :key="item.titan">
+            <td>{{ item.titan }}</td>
+            <td>{{ item.initialLevel }}</td>
+            <td>{{ item.finalLevel }}</td>
+            <td>{{ item.totalCost }}</td>
+            <td>{{ item.status }}</td>
+          </tr>
+        </tbody>
+      </table>
 
-    <p class="summary">
-      Total Upgrades Performed: {{ totalUpgrades }} <br/>
-      Potions Remaining: {{ potionsRemaining }}
-    </p>
-
-    <button @click="activeTab = 'input'">Back to Input</button>
+      <p>Total upgrades performed: {{ totalUpgrades }}</p>
+      <p>Potions remaining: {{ potionsRemaining }}</p>
+    </div>
   </div>
 </div>
 
@@ -103,31 +84,40 @@ const { createApp } = Vue;
 createApp({
   data() {
     return {
-      activeTab: 'input',
-      potionCostJson: '{\n  "1": 0,\n  "2": 100,\n  "3": 110,\n  "4": 120\n  // add more...\n}',
-      titansJson: '{\n  "Nova": 128,\n  "Mort": 122,\n  "Angus": 121\n  // add more...\n}',
+      loading: true,
+      potionCostTable: {},
+      titans: {},
       totalPotions: 1000,
-      error: '',
-      results: [],
-      totalUpgrades: 0,
-      potionsRemaining: 0,
       selectedTitan: '',
       upgradeCount: 1,
       specificCost: null,
       specificCostError: '',
+      results: [],
+      totalUpgrades: 0,
+      potionsRemaining: 0,
     }
   },
   computed: {
     titanNames() {
-      try {
-        const titans = JSON.parse(this.titansJson)
-        return Object.keys(titans)
-      } catch {
-        return []
-      }
+      return Object.keys(this.titans)
     }
   },
   methods: {
+    async loadData() {
+      try {
+        const [potionResp, titansResp] = await Promise.all([
+          fetch('data/potion_cost_table.json'),
+          fetch('data/titans.json'),
+        ])
+        this.potionCostTable = await potionResp.json()
+        this.titans = await titansResp.json()
+      } catch (e) {
+        alert("Failed to load data files. Check console for details.")
+        console.error(e)
+      } finally {
+        this.loading = false
+      }
+    },
     calculateSpecificCost() {
       this.specificCostError = ''
       this.specificCost = null
@@ -140,67 +130,26 @@ createApp({
         return
       }
 
-      let potionCostTable, titans;
-      try {
-        potionCostTable = JSON.parse(this.potionCostJson)
-        potionCostTable = Object.fromEntries(
-          Object.entries(potionCostTable).map(([k,v]) => [parseInt(k), v])
-        )
-      } catch {
-        this.specificCostError = 'Invalid JSON for Potion Cost Table.'
-        return
-      }
-      try {
-        titans = JSON.parse(this.titansJson)
-      } catch {
-        this.specificCostError = 'Invalid JSON for Titans.'
+      if (!(this.selectedTitan in this.titans)) {
+        this.specificCostError = `Titan '${this.selectedTitan}' not found.`
         return
       }
 
-      if (!(this.selectedTitan in titans)) {
-        this.specificCostError = `Titan '${this.selectedTitan}' not found in Titans data.`
-        return
-      }
-
-      const currentLevel = titans[this.selectedTitan]
+      const currentLevel = this.titans[this.selectedTitan]
       let totalCost = 0
       for (let i = 1; i <= this.upgradeCount; i++) {
         const nextLevel = currentLevel + i
-        const cost = potionCostTable[nextLevel]
+        const cost = this.potionCostTable[nextLevel]
         if (cost === undefined) {
           this.specificCostError = `Potion cost not found for level ${nextLevel}.`
           return
         }
         totalCost += cost
       }
-
       this.specificCost = totalCost
     },
-
     calculateUpgrades() {
-      this.error = ''
-      let potionCostTable, titans
-      try {
-        potionCostTable = JSON.parse(this.potionCostJson)
-        potionCostTable = Object.fromEntries(
-          Object.entries(potionCostTable).map(([k, v]) => [parseInt(k), v])
-        )
-      } catch(e) {
-        this.error = 'Invalid JSON for Potion Cost Table.'
-        return
-      }
-      try {
-        titans = JSON.parse(this.titansJson)
-      } catch(e) {
-        this.error = 'Invalid JSON for Titans.'
-        return
-      }
-      if (typeof this.totalPotions !== 'number' || this.totalPotions < 0) {
-        this.error = 'Total Potions must be a positive number.'
-        return
-      }
-
-      let titanLevels = {...titans}
+      let titanLevels = { ...this.titans }
       let upgrades = {}
       let potionsLeft = this.totalPotions
       let potionsSpent = {}
@@ -210,22 +159,21 @@ createApp({
         potionsSpent[t] = 0
       }
 
-      while(true) {
+      while (true) {
         let cheapestTitan = null
         let cheapestCost = Infinity
 
-        for(let t in titanLevels) {
+        for (let t in titanLevels) {
           let currentLevel = titanLevels[t]
           let nextLevel = currentLevel + 1
-          let cost = potionCostTable[nextLevel]
+          let cost = this.potionCostTable[nextLevel]
 
-          if(cost !== undefined && cost <= potionsLeft && cost < cheapestCost) {
+          if (cost !== undefined && cost <= potionsLeft && cost < cheapestCost) {
             cheapestCost = cost
             cheapestTitan = t
           }
         }
-
-        if(cheapestTitan === null) break
+        if (cheapestTitan === null) break
 
         titanLevels[cheapestTitan]++
         upgrades[cheapestTitan]++
@@ -236,18 +184,19 @@ createApp({
       this.results = Object.keys(titanLevels).map(titan => {
         return {
           titan,
-          initialLevel: titans[titan],
+          initialLevel: this.titans[titan],
           finalLevel: titanLevels[titan],
           totalCost: potionsSpent[titan],
           status: upgrades[titan] > 0 ? 'Upgraded' : 'No Upgrade Possible'
         }
       })
 
-      this.totalUpgrades = Object.values(upgrades).reduce((a,b) => a+b, 0)
+      this.totalUpgrades = Object.values(upgrades).reduce((a, b) => a + b, 0)
       this.potionsRemaining = potionsLeft
-
-      this.activeTab = 'result'
     }
+  },
+  mounted() {
+    this.loadData()
   }
 }).mount('#app')
 </script>
