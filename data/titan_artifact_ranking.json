@@ -2,256 +2,81 @@
   "solaris": {
     "1":{
       "name": "Belav's Greatness",
+      "level": 120,
       "rank": 5,
-      "amount": 9000,
+      "amount": 9000
     },
     "2":{
       "name": "Crown of Light",
+      "level": 121,
       "rank": 5,
-      "amount": 5237,
+      "amount": 5237
     },
     "3":{
       "name": "Gleaming balance Seal",
+      "level": 130,
       "rank": 6,
-      "amount": 0,
+      "amount": 0
     }
   },
-  "solaris": {
+  "siungur": {
     "1":{
-      "name": "Belav's Greatness",
+      "name": "Siungur's Aegis",
+      "level": 121,
       "rank": 5,
-      "amount": 9000,
+      "amount": 989
     },
     "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
+      "name": "Water Crown",
+      "level": 121,
+      "rank": 6,
+      "amount": 0
     },
     "3":{
-      "name": "Gleaming balance Seal",
+      "name": "Defense Seal",
+      "level": 130,
       "rank": 6,
-      "amount": 0,
+      "amount": 0
     }
   },
-  "solaris": {
+  "nova": {
     "1":{
-      "name": "Belav's Greatness",
+      "name": "Siungur's Maelstrom",
+      "level": 121,
       "rank": 5,
-      "amount": 9000,
+      "amount": 6983
     },
     "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
+      "name": "Water Crown",
+      "level": 110,
+      "rank": 6,
+      "amount": 0
     },
     "3":{
-      "name": "Gleaming balance Seal",
+      "name": "Attack Seal",
+      "level": 130,
       "rank": 6,
-      "amount": 0,
+      "amount": 0
     }
   },
-  "solaris": {
+  "eden": {
     "1":{
-      "name": "Belav's Greatness",
+      "name": "Andvari;s Soul",
+      "level": 110,
       "rank": 5,
-      "amount": 9000,
+      "amount": 944
     },
     "2":{
-      "name": "Crown of Light",
+      "name": "Earth Crown",
+      "level": 110,
       "rank": 5,
-      "amount": 5237,
+      "amount": 8488
     },
     "3":{
-      "name": "Gleaming balance Seal",
+      "name": "Balance Seal",
+      "level": 130,
       "rank": 6,
-      "amount": 0,
+      "amount": 0
     }
   },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  },
-  "solaris": {
-    "1":{
-      "name": "Belav's Greatness",
-      "rank": 5,
-      "amount": 9000,
-    },
-    "2":{
-      "name": "Crown of Light",
-      "rank": 5,
-      "amount": 5237,
-    },
-    "3":{
-      "name": "Gleaming balance Seal",
-      "rank": 6,
-      "amount": 0,
-    }
-  }
 }
